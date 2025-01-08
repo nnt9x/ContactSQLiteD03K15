@@ -1,14 +1,18 @@
 package com.bkacad.edu.nnt.contactsqlited03k15;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.service.controls.actions.FloatAction;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -29,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private ListView lvContacts;
     // Dữ liệu và adapter
     private List<String> data;
+
+    private List<Contact> contacts; // DB
     private ArrayAdapter adapter;
 
     // Tao them dialog
@@ -38,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private ContactDBHelper dbHelper;
 
     private FloatingActionButton floatingActionButton;
+
+    private AlertDialog alertDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Du lieu can lay tu SQLite
         dbHelper = new ContactDBHelper(MainActivity.this);
-        List<Contact> contacts = dbHelper.getAllContacts();
+        contacts = dbHelper.getAllContacts();
         // Thêm dữ liệu mặc định nếu SQLite chưa có dữ liệu
         if(contacts.size() == 0){
             dbHelper.insertContact(new Contact("Contact 1", "19182828"));
@@ -104,5 +112,60 @@ public class MainActivity extends AppCompatActivity {
                 contactDialog.show();
             }
         });
+
+
+        btnSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // B1: Lay du lieu tu editText
+                String kw = edtSearch.getText().toString();
+//
+                // B2: Truy van CSDL
+                contacts = dbHelper.getContactsWithCondition(kw);
+                // B3: Hien Thi
+                data.clear();
+                for (Contact contact: contacts) {
+                    data.add(contact.getName()+" - " + contact.getPhone());
+                }
+                adapter.notifyDataSetChanged();
+
+            }
+        });
+
+        lvContacts.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                if(alertDialog == null){
+                    alertDialog = new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Cảnh báo")
+                            .setMessage("Bạn có muốn xoá?")
+                            .setPositiveButton("Đồng ý", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    Contact contact = contacts.get(position);
+                                    dbHelper.deleteContact(contact.getId());
+                                    // Lay nguoc du lieu tu db
+                                    contacts = dbHelper.getAllContacts();
+                                    data.clear();
+                                    for (Contact c: contacts) {
+                                        data.add(c.getName()+" - " + c.getPhone());
+                                    }
+                                    adapter.notifyDataSetChanged();
+                                }
+                            })
+                            .setNegativeButton("Huỷ", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    alertDialog.dismiss();
+                                }
+                            })
+                            .create();
+                }
+                alertDialog.show();
+
+                return false;
+            }
+        });
+
     }
 }

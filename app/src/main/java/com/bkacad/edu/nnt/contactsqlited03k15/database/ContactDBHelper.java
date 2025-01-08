@@ -65,5 +65,33 @@ public class ContactDBHelper extends SQLiteOpenHelper {
 
     }
 
+    public List<Contact> getContactsWithCondition(String kw){
+        SQLiteDatabase db = getReadableDatabase();
+        String sql = "SELECT * FROM contacts WHERE name LIKE '%"+kw+"%' \n" +
+                "OR phone LIKE '%"+kw+"%' OR email LIKE '%"+kw+"%'";
+        // Thuc thi
+        Cursor cursor = db.rawQuery(sql, null);
+
+        List<Contact> contacts = new ArrayList<>();
+        while(cursor.moveToNext()) {
+            // Tao doi tuong contact -> ung voi ban ghi contact (row)
+            Contact contact = new Contact();
+            contact.setId(cursor.getLong(0));
+            contact.setName(cursor.getString(1));
+            contact.setPhone(cursor.getString(2));
+            contact.setEmail(cursor.getString(3));
+
+            contacts.add(contact);
+        }
+        cursor.close();
+
+        return contacts;
+    }
+
+    public void deleteContact(long id){
+        String sql = "DELETE FROM contacts WHERE id = " + id;
+        SQLiteDatabase db = getWritableDatabase();
+        db.execSQL(sql);
+    }
 
 }
